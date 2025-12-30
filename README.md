@@ -52,7 +52,3 @@ Create an exam file with this structure:
 | `explanation` | Shown in results review (optional) |
 
 A sample exam file is included at `wwwroot/sample-exam.json`.
-
-## License
-
-MIT
