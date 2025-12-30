@@ -1,0 +1,200 @@
+@page "/exam"
+@inject ExamService ExamService
+@inject TimerService TimerService
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<div class="exam-page">
+    @if (!ExamService.IsExamActive)
+    {
+        <div class="no-exam">
+            <h2>No exam loaded</h2>
+            <p>Please go back to the home page and load an exam file.</p>
+            <button class="primary-btn" @onclick="GoHome">Go to Home</button>
+        </div>
+    }
+    else
+    {
+        <div class="exam-header">
+            <div class="exam-title">
+                <h2>@ExamService.CurrentExam?.ExamTitle</h2>
+            </div>
+            <div class="exam-controls">
+                <Timer />
+                <button class="submit-btn" @onclick="ShowSubmitConfirm">
+                    Submit Exam
+                </button>
+            </div>
+        </div>
+
+        <ProgressBar />
+
+        <div class="exam-content">
+            <div class="question-area">
+                @if (ExamService.CurrentQuestion != null)
+                {
+                    <QuestionCard Question="@ExamService.CurrentQuestion"
+                                  QuestionIndex="@ExamService.CurrentQuestionIndex"
+                                  OnAnswerSelected="HandleAnswerSelected" />
+                }
+
+                <div class="navigation-buttons">
+                    <button class="nav-btn-prev" @onclick="PreviousQuestion" disabled="@ExamService.IsFirstQuestion">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"/>
+                        </svg>
+                        Previous
+                    </button>
+
+                    @if (ExamService.IsLastQuestion)
+                    {
+                        <button class="nav-btn-submit" @onclick="ShowSubmitConfirm">
+                            Review & Submit
+                        </button>
+                    }
+                    else
+                    {
+                        <button class="nav-btn-next" @onclick="NextQuestion">
+                            Next
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="9 18 15 12 9 6"/>
+                            </svg>
+                        </button>
+                    }
+                </div>
+            </div>
+
+            <aside class="sidebar">
+                <QuestionNav OnNavigate="HandleNavigate" />
+            </aside>
+        </div>
+
+        @if (ShowConfirmDialog)
+        {
+            <div class="modal-overlay" @onclick="HideSubmitConfirm">
+                <div class="modal-content" @onclick:stopPropagation>
+                    <h3>Submit Exam?</h3>
+
+                    @if (UnansweredCount > 0)
+                    {
+                        <div class="warning-box">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                                <line x1="12" y1="9" x2="12" y2="13"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                            <p>You have <strong>@UnansweredCount unanswered question(s)</strong>. Are you sure you want to submit?</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <p>You have answered all questions. Ready to submit?</p>
+                    }
+
+                    @if (MarkedCount > 0)
+                    {
+                        <p class="marked-note">You have @MarkedCount question(s) marked for review.</p>
+                    }
+
+                    <div class="modal-buttons">
+                        <button class="cancel-btn" @onclick="HideSubmitConfirm">Continue Exam</button>
+                        <button class="confirm-btn" @onclick="SubmitExam">Submit Exam</button>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private bool ShowConfirmDialog;
+    private int UnansweredCount => (ExamService.CurrentExam?.Questions.Count ?? 0) - (ExamService.CurrentResult?.AnsweredQuestions ?? 0);
+    private int MarkedCount => ExamService.CurrentResult?.MarkedForReview.Count ?? 0;
+
+    protected override void OnInitialized()
+    {
+        if (!ExamService.IsExamActive)
+        {
+            return;
+        }
+
+        TimerService.OnTimeUp += HandleTimeUp;
+        TimerService.OnTick += HandleTick;
+        ExamService.OnExamStateChanged += HandleExamStateChanged;
+
+        if (ExamService.CurrentExam != null)
+        {
+            TimerService.Start(ExamService.CurrentExam.TimeLimit);
+        }
+    }
+
+    private void HandleTick()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleExamStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleAnswerSelected(int answerIndex)
+    {
+        StateHasChanged();
+    }
+
+    private void HandleNavigate(int index)
+    {
+        StateHasChanged();
+    }
+
+    private void NextQuestion()
+    {
+        ExamService.NextQuestion();
+        StateHasChanged();
+    }
+
+    private void PreviousQuestion()
+    {
+        ExamService.PreviousQuestion();
+        StateHasChanged();
+    }
+
+    private void ShowSubmitConfirm()
+    {
+        ShowConfirmDialog = true;
+    }
+
+    private void HideSubmitConfirm()
+    {
+        ShowConfirmDialog = false;
+    }
+
+    private void HandleTimeUp()
+    {
+        InvokeAsync(() =>
+        {
+            SubmitExam();
+            StateHasChanged();
+        });
+    }
+
+    private void SubmitExam()
+    {
+        var result = ExamService.FinishExam(TimerService.ElapsedSeconds);
+        TimerService.Stop();
+        Navigation.NavigateTo("/results");
+    }
+
+    private void GoHome()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    public void Dispose()
+    {
+        TimerService.OnTimeUp -= HandleTimeUp;
+        TimerService.OnTick -= HandleTick;
+        ExamService.OnExamStateChanged -= HandleExamStateChanged;
+    }
+}

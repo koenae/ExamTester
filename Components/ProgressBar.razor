@@ -1,0 +1,34 @@
+@inject ExamService ExamService
+@implements IDisposable
+
+<div class="progress-container">
+    <div class="progress-info">
+        <span class="progress-text">Question @(CurrentQuestion) of @TotalQuestions</span>
+        <span class="progress-answered">@AnsweredCount answered</span>
+    </div>
+    <div class="progress-bar">
+        <div class="progress-fill" style="width: @ProgressPercentage%"></div>
+    </div>
+</div>
+
+@code {
+    private int CurrentQuestion => ExamService.CurrentQuestionIndex + 1;
+    private int TotalQuestions => ExamService.CurrentExam?.Questions.Count ?? 0;
+    private int AnsweredCount => ExamService.CurrentResult?.AnsweredQuestions ?? 0;
+    private double ProgressPercentage => TotalQuestions > 0 ? (double)CurrentQuestion / TotalQuestions * 100 : 0;
+
+    protected override void OnInitialized()
+    {
+        ExamService.OnExamStateChanged += HandleStateChanged;
+    }
+
+    private void HandleStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        ExamService.OnExamStateChanged -= HandleStateChanged;
+    }
+}

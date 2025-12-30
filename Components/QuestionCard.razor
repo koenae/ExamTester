@@ -1,0 +1,82 @@
+@inject ExamService ExamService
+
+<div class="question-card">
+    <div class="question-header">
+        <span class="question-number">Question @(QuestionIndex + 1)</span>
+        <button class="mark-review-btn @(IsMarked ? "marked" : "")" @onclick="ToggleMark">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="@(IsMarked ? "currentColor" : "none")" stroke="currentColor" stroke-width="2">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+            </svg>
+            @(IsMarked ? "Marked" : "Mark for review")
+        </button>
+    </div>
+
+    <div class="question-text">
+        @Question.Text
+    </div>
+
+    <div class="options-list">
+        @for (int i = 0; i < Question.Options.Count; i++)
+        {
+            var optionIndex = i;
+            var isSelected = SelectedAnswer == optionIndex;
+            <button class="option-btn @(isSelected ? "selected" : "")"
+                    @onclick="() => SelectOption(optionIndex)">
+                <span class="option-letter">@GetOptionLetter(optionIndex)</span>
+                <span class="option-text">@Question.Options[optionIndex]</span>
+                @if (isSelected)
+                {
+                    <svg class="check-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                }
+            </button>
+        }
+    </div>
+
+    @if (SelectedAnswer.HasValue)
+    {
+        <button class="clear-btn" @onclick="ClearSelection">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+            Clear selection
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Question Question { get; set; } = new();
+
+    [Parameter]
+    public int QuestionIndex { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnAnswerSelected { get; set; }
+
+    private int? SelectedAnswer => ExamService.GetAnswer(Question.Id);
+    private bool IsMarked => ExamService.IsMarkedForReview(Question.Id);
+
+    private async Task SelectOption(int optionIndex)
+    {
+        ExamService.SetAnswer(Question.Id, optionIndex);
+        await OnAnswerSelected.InvokeAsync(optionIndex);
+    }
+
+    private void ClearSelection()
+    {
+        ExamService.ClearAnswer(Question.Id);
+    }
+
+    private void ToggleMark()
+    {
+        ExamService.ToggleMarkForReview(Question.Id);
+    }
+
+    private string GetOptionLetter(int index)
+    {
+        return ((char)('A' + index)).ToString();
+    }
+}

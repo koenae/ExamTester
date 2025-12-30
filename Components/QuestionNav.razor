@@ -1,0 +1,121 @@
+@inject ExamService ExamService
+@implements IDisposable
+
+<div class="question-nav">
+    <div class="nav-header">
+        <h3>Question Navigator</h3>
+    </div>
+
+    <div class="nav-legend">
+        <div class="legend-item">
+            <span class="legend-dot current"></span>
+            <span>Current</span>
+        </div>
+        <div class="legend-item">
+            <span class="legend-dot answered"></span>
+            <span>Answered</span>
+        </div>
+        <div class="legend-item">
+            <span class="legend-dot marked"></span>
+            <span>Marked</span>
+        </div>
+        <div class="legend-item">
+            <span class="legend-dot unanswered"></span>
+            <span>Unanswered</span>
+        </div>
+    </div>
+
+    <div class="nav-grid">
+        @if (ExamService.CurrentExam != null)
+        {
+            @for (int i = 0; i < ExamService.CurrentExam.Questions.Count; i++)
+            {
+                var questionIndex = i;
+                var question = ExamService.CurrentExam.Questions[i];
+                var status = ExamService.GetQuestionStatus(question.Id);
+                var isCurrent = i == ExamService.CurrentQuestionIndex;
+
+                <button class="nav-btn @GetStatusClass(status) @(isCurrent ? "current" : "")"
+                        @onclick="() => NavigateTo(questionIndex)"
+                        title="Question @(questionIndex + 1) - @GetStatusText(status)">
+                    @(questionIndex + 1)
+                    @if (status == QuestionStatus.MarkedForReview || status == QuestionStatus.AnsweredAndMarked)
+                    {
+                        <span class="mark-indicator">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+                            </svg>
+                        </span>
+                    }
+                </button>
+            }
+        }
+    </div>
+
+    <div class="nav-summary">
+        <div class="summary-item">
+            <span class="summary-value">@AnsweredCount</span>
+            <span class="summary-label">Answered</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-value">@UnansweredCount</span>
+            <span class="summary-label">Unanswered</span>
+        </div>
+        <div class="summary-item">
+            <span class="summary-value">@MarkedCount</span>
+            <span class="summary-label">Marked</span>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback<int> OnNavigate { get; set; }
+
+    private int AnsweredCount => ExamService.CurrentResult?.AnsweredQuestions ?? 0;
+    private int UnansweredCount => (ExamService.CurrentExam?.Questions.Count ?? 0) - AnsweredCount;
+    private int MarkedCount => ExamService.CurrentResult?.MarkedForReview.Count ?? 0;
+
+    protected override void OnInitialized()
+    {
+        ExamService.OnExamStateChanged += HandleStateChanged;
+    }
+
+    private void HandleStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task NavigateTo(int index)
+    {
+        ExamService.NavigateToQuestion(index);
+        await OnNavigate.InvokeAsync(index);
+    }
+
+    private string GetStatusClass(QuestionStatus status)
+    {
+        return status switch
+        {
+            QuestionStatus.Answered => "answered",
+            QuestionStatus.MarkedForReview => "marked",
+            QuestionStatus.AnsweredAndMarked => "answered marked",
+            _ => "unanswered"
+        };
+    }
+
+    private string GetStatusText(QuestionStatus status)
+    {
+        return status switch
+        {
+            QuestionStatus.Answered => "Answered",
+            QuestionStatus.MarkedForReview => "Marked for review",
+            QuestionStatus.AnsweredAndMarked => "Answered & Marked",
+            _ => "Not answered"
+        };
+    }
+
+    public void Dispose()
+    {
+        ExamService.OnExamStateChanged -= HandleStateChanged;
+    }
+}

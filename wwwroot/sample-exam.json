@@ -1,0 +1,247 @@
+{
+  "examTitle": "Azure Fundamentals (AZ-900) Practice Exam",
+  "timeLimit": 45,
+  "passingScore": 70,
+  "questions": [
+    {
+      "id": 1,
+      "text": "Which Azure service is used to deploy and manage virtual machines?",
+      "options": [
+        "Azure App Service",
+        "Azure Virtual Machines",
+        "Azure Functions",
+        "Azure Container Instances"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Azure Virtual Machines is the Infrastructure as a Service (IaaS) offering that allows you to deploy and manage VMs in the cloud."
+    },
+    {
+      "id": 2,
+      "text": "What is the primary purpose of Azure Blob Storage?",
+      "options": [
+        "To store relational data",
+        "To run serverless functions",
+        "To store unstructured data like images, videos, and documents",
+        "To host web applications"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Azure Blob Storage is designed to store massive amounts of unstructured data, such as text or binary data, including images, videos, and documents."
+    },
+    {
+      "id": 3,
+      "text": "Which cloud service model provides the most control over the underlying infrastructure?",
+      "options": [
+        "Software as a Service (SaaS)",
+        "Platform as a Service (PaaS)",
+        "Infrastructure as a Service (IaaS)",
+        "Function as a Service (FaaS)"
+      ],
+      "correctAnswer": 2,
+      "explanation": "IaaS provides the most control over the underlying infrastructure, allowing you to manage virtual machines, storage, and networking."
+    },
+    {
+      "id": 4,
+      "text": "What does the Azure Resource Manager (ARM) provide?",
+      "options": [
+        "A web-based portal for managing Azure resources",
+        "A deployment and management layer for Azure resources",
+        "A monitoring service for Azure resources",
+        "A backup service for Azure resources"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Azure Resource Manager is the deployment and management service for Azure. It provides a consistent management layer for creating, updating, and deleting resources."
+    },
+    {
+      "id": 5,
+      "text": "Which Azure service provides a globally distributed, multi-model database?",
+      "options": [
+        "Azure SQL Database",
+        "Azure Cosmos DB",
+        "Azure Table Storage",
+        "Azure Redis Cache"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Azure Cosmos DB is a globally distributed, multi-model database service that supports document, key-value, graph, and column-family data models."
+    },
+    {
+      "id": 6,
+      "text": "What is an Azure Availability Zone?",
+      "options": [
+        "A logical grouping of resources within a subscription",
+        "A physically separate datacenter within an Azure region",
+        "A geographic area containing one or more Azure regions",
+        "A collection of virtual networks"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Availability Zones are physically separate datacenters within an Azure region, designed to protect applications from datacenter failures."
+    },
+    {
+      "id": 7,
+      "text": "Which tool can be used to estimate the cost of Azure services before deployment?",
+      "options": [
+        "Azure Monitor",
+        "Azure Advisor",
+        "Azure Pricing Calculator",
+        "Azure Cost Management"
+      ],
+      "correctAnswer": 2,
+      "explanation": "The Azure Pricing Calculator helps you estimate costs for Azure services before you deploy them, allowing for better budget planning."
+    },
+    {
+      "id": 8,
+      "text": "What is the purpose of Azure Active Directory (Azure AD)?",
+      "options": [
+        "To store and manage files",
+        "To provide identity and access management",
+        "To monitor application performance",
+        "To deploy virtual machines"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Azure Active Directory is Microsoft's cloud-based identity and access management service, helping employees sign in and access resources."
+    },
+    {
+      "id": 9,
+      "text": "Which Azure service allows you to run code without provisioning or managing servers?",
+      "options": [
+        "Azure Virtual Machines",
+        "Azure Kubernetes Service",
+        "Azure Functions",
+        "Azure App Service"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Azure Functions is a serverless compute service that lets you run code on-demand without having to explicitly provision or manage infrastructure."
+    },
+    {
+      "id": 10,
+      "text": "What is the main benefit of using Azure Virtual Network?",
+      "options": [
+        "It provides backup services",
+        "It enables secure communication between Azure resources",
+        "It hosts web applications",
+        "It stores unstructured data"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Azure Virtual Network enables secure communication between Azure resources, the internet, and on-premises networks through isolation, segmentation, and filtering."
+    },
+    {
+      "id": 11,
+      "text": "Which Azure governance feature allows you to enforce organizational standards?",
+      "options": [
+        "Azure Monitor",
+        "Azure Policy",
+        "Azure Advisor",
+        "Azure Blueprints"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Azure Policy helps enforce organizational standards and assess compliance at scale by creating and assigning policy definitions."
+    },
+    {
+      "id": 12,
+      "text": "What type of cloud deployment uses both on-premises and cloud resources?",
+      "options": [
+        "Public cloud",
+        "Private cloud",
+        "Hybrid cloud",
+        "Community cloud"
+      ],
+      "correctAnswer": 2,
+      "explanation": "A hybrid cloud combines on-premises infrastructure with cloud resources, allowing data and applications to be shared between them."
+    },
+    {
+      "id": 13,
+      "text": "Which Azure service provides DDoS protection for Azure resources?",
+      "options": [
+        "Azure Firewall",
+        "Azure DDoS Protection",
+        "Azure Security Center",
+        "Azure Sentinel"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Azure DDoS Protection provides enhanced DDoS mitigation capabilities to protect Azure resources from distributed denial of service attacks."
+    },
+    {
+      "id": 14,
+      "text": "What is the purpose of Azure ExpressRoute?",
+      "options": [
+        "To provide a CDN service",
+        "To create private connections between Azure datacenters and on-premises infrastructure",
+        "To manage DNS records",
+        "To deploy containerized applications"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Azure ExpressRoute lets you create private connections between Azure datacenters and your on-premises infrastructure without going over the public internet."
+    },
+    {
+      "id": 15,
+      "text": "Which service level agreement (SLA) component measures the percentage of time a service is available?",
+      "options": [
+        "Latency",
+        "Throughput",
+        "Uptime",
+        "Bandwidth"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Uptime (or availability) is the percentage of time that a service is operational and accessible, typically expressed as a percentage (e.g., 99.99%)."
+    },
+    {
+      "id": 16,
+      "text": "What is Azure Load Balancer used for?",
+      "options": [
+        "Storing backup data",
+        "Distributing incoming network traffic across multiple servers",
+        "Managing user identities",
+        "Monitoring application logs"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Azure Load Balancer distributes incoming network traffic across multiple backend resources or servers to ensure high availability and reliability."
+    },
+    {
+      "id": 17,
+      "text": "Which Azure service helps you manage and govern multiple Azure subscriptions?",
+      "options": [
+        "Azure Resource Groups",
+        "Azure Management Groups",
+        "Azure Policy",
+        "Azure Blueprints"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Azure Management Groups provide a level of scope above subscriptions, allowing you to efficiently manage access, policies, and compliance across multiple subscriptions."
+    },
+    {
+      "id": 18,
+      "text": "What is the primary function of Azure Key Vault?",
+      "options": [
+        "To store virtual machine images",
+        "To securely store and manage secrets, keys, and certificates",
+        "To monitor network traffic",
+        "To deploy web applications"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Azure Key Vault helps safeguard cryptographic keys, secrets, and certificates used by cloud applications and services."
+    },
+    {
+      "id": 19,
+      "text": "Which pricing model charges based on actual resource usage without upfront commitment?",
+      "options": [
+        "Reserved Instances",
+        "Spot Pricing",
+        "Pay-as-you-go",
+        "Enterprise Agreement"
+      ],
+      "correctAnswer": 2,
+      "explanation": "Pay-as-you-go pricing charges based on actual resource consumption without any upfront commitment, providing flexibility for variable workloads."
+    },
+    {
+      "id": 20,
+      "text": "What does the concept of 'defense in depth' mean in cloud security?",
+      "options": [
+        "Using a single, strong security measure",
+        "Implementing multiple layers of security controls",
+        "Relying only on physical security",
+        "Using only encryption for protection"
+      ],
+      "correctAnswer": 1,
+      "explanation": "Defense in depth is a security strategy that uses multiple layers of security controls (physical, identity, network, application, data) to protect resources."
+    }
+  ]
+}

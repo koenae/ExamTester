@@ -1,0 +1,34 @@
+@inject TimerService TimerService
+@implements IDisposable
+
+<div class="timer @GetTimerClass()">
+    <svg class="timer-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+    </svg>
+    <span class="timer-value">@TimerService.FormattedTime</span>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        TimerService.OnTick += HandleTick;
+    }
+
+    private void HandleTick()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string GetTimerClass()
+    {
+        if (TimerService.IsCritical) return "timer-critical";
+        if (TimerService.IsWarning) return "timer-warning";
+        return "";
+    }
+
+    public void Dispose()
+    {
+        TimerService.OnTick -= HandleTick;
+    }
+}

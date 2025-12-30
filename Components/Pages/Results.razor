@@ -1,0 +1,163 @@
+@page "/results"
+@inject ExamService ExamService
+@inject NavigationManager Navigation
+
+<div class="results-page">
+    @if (ExamService.CurrentResult == null)
+    {
+        <div class="no-results">
+            <h2>No results available</h2>
+            <p>Please complete an exam first.</p>
+            <button class="primary-btn" @onclick="GoHome">Go to Home</button>
+        </div>
+    }
+    else
+    {
+        var result = ExamService.CurrentResult;
+
+        <div class="results-header">
+            <h1>Exam Results</h1>
+            <h2>@result.Exam.ExamTitle</h2>
+        </div>
+
+        <div class="score-card @(result.IsPassed ? "passed" : "failed")">
+            <div class="score-circle">
+                <svg viewBox="0 0 100 100">
+                    <circle class="score-bg" cx="50" cy="50" r="45" />
+                    <circle class="score-fill" cx="50" cy="50" r="45"
+                            stroke-dasharray="@(283 * result.ScorePercentage / 100) 283" />
+                </svg>
+                <div class="score-value">
+                    <span class="percentage">@result.ScorePercentage%</span>
+                    <span class="status">@(result.IsPassed ? "PASSED" : "FAILED")</span>
+                </div>
+            </div>
+
+            <div class="score-details">
+                <div class="detail-row">
+                    <span class="label">Correct Answers</span>
+                    <span class="value correct">@result.CorrectAnswers / @result.TotalQuestions</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Passing Score</span>
+                    <span class="value">@result.Exam.PassingScore%</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Time Spent</span>
+                    <span class="value">@result.TimeSpentFormatted</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">Time Allowed</span>
+                    <span class="value">@result.Exam.TimeLimit min</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="results-actions">
+            <button class="secondary-btn" @onclick="RetryExam">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="1 4 1 10 7 10"/>
+                    <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
+                </svg>
+                Retry Exam
+            </button>
+            <button class="primary-btn" @onclick="GoHome">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="12" y1="18" x2="12" y2="12"/>
+                    <line x1="9" y1="15" x2="15" y2="15"/>
+                </svg>
+                New Exam
+            </button>
+        </div>
+
+        <div class="review-section">
+            <h3>Question Review</h3>
+            <p class="review-info">Review your answers and see explanations for each question.</p>
+
+            <div class="question-review-list">
+                @for (int i = 0; i < result.Exam.Questions.Count; i++)
+                {
+                    var question = result.Exam.Questions[i];
+                    var userAnswer = result.GetUserAnswer(question.Id);
+                    var isCorrect = result.IsQuestionCorrect(question.Id);
+
+                    <div class="review-item @(isCorrect ? "correct" : "incorrect")">
+                        <div class="review-header">
+                            <span class="review-number">Question @(i + 1)</span>
+                            <span class="review-status">
+                                @if (isCorrect)
+                                {
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <polyline points="9 12 12 15 16 10"/>
+                                    </svg>
+                                    <span>Correct</span>
+                                }
+                                else
+                                {
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <line x1="15" y1="9" x2="9" y2="15"/>
+                                        <line x1="9" y1="9" x2="15" y2="15"/>
+                                    </svg>
+                                    <span>Incorrect</span>
+                                }
+                            </span>
+                        </div>
+
+                        <div class="review-question">@question.Text</div>
+
+                        <div class="review-options">
+                            @for (int j = 0; j < question.Options.Count; j++)
+                            {
+                                var optionIndex = j;
+                                var isUserAnswer = userAnswer == optionIndex;
+                                var isCorrectAnswer = question.CorrectAnswer == optionIndex;
+                                var optionClass = "";
+
+                                if (isCorrectAnswer) optionClass = "correct-answer";
+                                else if (isUserAnswer && !isCorrect) optionClass = "wrong-answer";
+
+                                <div class="review-option @optionClass">
+                                    <span class="option-letter">@((char)('A' + j))</span>
+                                    <span class="option-text">@question.Options[j]</span>
+                                    @if (isUserAnswer)
+                                    {
+                                        <span class="your-answer">Your answer</span>
+                                    }
+                                    @if (isCorrectAnswer)
+                                    {
+                                        <span class="correct-label">Correct</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(question.Explanation))
+                        {
+                            <div class="review-explanation">
+                                <strong>Explanation:</strong> @question.Explanation
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private void RetryExam()
+    {
+        ExamService.StartExam();
+        Navigation.NavigateTo("/exam");
+    }
+
+    private void GoHome()
+    {
+        ExamService.ResetExam();
+        Navigation.NavigateTo("/");
+    }
+}
