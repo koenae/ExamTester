@@ -1,0 +1,315 @@
+@page "/generate"
+@inject ExamService ExamService
+@inject QuestionGeneratorService GeneratorService
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<div class="home-page">
+    <div class="hero-section">
+        <h1>Generate Exam</h1>
+        <p class="hero-subtitle">Use AI to automatically generate practice exam questions</p>
+    </div>
+
+    <div class="generate-section">
+        <div class="generate-card">
+            @if (GeneratedExam != null)
+            {
+                <div class="exam-preview">
+                    <svg class="check-circle" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="9 12 12 15 16 10"/>
+                    </svg>
+                    <h3>@GeneratedExam.ExamTitle</h3>
+                    <div class="exam-details">
+                        <div class="detail-item">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            <span>@GeneratedExam.TimeLimit minutes</span>
+                        </div>
+                        <div class="detail-item">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 11l3 3L22 4"/>
+                                <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+                            </svg>
+                            <span>@GeneratedExam.Questions.Count questions</span>
+                        </div>
+                        <div class="detail-item">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                            <span>@GeneratedExam.PassingScore% to pass</span>
+                        </div>
+                    </div>
+                    <button class="start-btn" @onclick="StartExam">
+                        Start Exam
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                            <polyline points="12 5 19 12 12 19"/>
+                        </svg>
+                    </button>
+                    <button class="reset-btn" @onclick="ResetExam">Generate Another Exam</button>
+                </div>
+            }
+            else if (IsGenerating)
+            {
+                <div class="generating-status">
+                    <div class="spinner"></div>
+                    <p>@ProgressMessage</p>
+                    <button class="cancel-btn" @onclick="CancelGeneration">Cancel</button>
+                </div>
+            }
+            else
+            {
+                <div class="generate-form">
+                    <div class="form-section">
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0110 0v4"/>
+                            </svg>
+                            API Configuration
+                        </h3>
+
+                        <div class="form-group">
+                            <label for="provider">LLM Provider</label>
+                            <select id="provider" @bind="SelectedProvider" class="form-select">
+                                <option value="@Models.LlmProvider.OpenAI">OpenAI</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="model">Model</label>
+                            <select id="model" @bind="SelectedModel" class="form-select">
+                                <option value="gpt-4o-mini">GPT-4o Mini (Fast & Affordable)</option>
+                                <option value="gpt-4o">GPT-4o (Best Quality)</option>
+                                <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                                <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Fastest)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="apiKey">API Key</label>
+                            <div class="api-key-input">
+                                <input type="@(ShowApiKey ? "text" : "password")"
+                                       id="apiKey"
+                                       @bind="ApiKey"
+                                       placeholder="sk-..."
+                                       class="form-input" />
+                                <button type="button" class="toggle-visibility" @onclick="ToggleApiKeyVisibility">
+                                    @if (ShowApiKey)
+                                    {
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/>
+                                            <line x1="1" y1="1" x2="23" y2="23"/>
+                                        </svg>
+                                    }
+                                    else
+                                    {
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                            <circle cx="12" cy="12" r="3"/>
+                                        </svg>
+                                    }
+                                </button>
+                            </div>
+                            <small class="form-hint">Your API key is stored only in memory and never sent to our servers</small>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                                <polyline points="10 9 9 9 8 9"/>
+                            </svg>
+                            Exam Settings
+                        </h3>
+
+                        <div class="form-group">
+                            <label for="examNumber">Exam Number / Certification</label>
+                            <input type="text"
+                                   id="examNumber"
+                                   @bind="ExamNumber"
+                                   placeholder="e.g., AZ-900, AWS-SAA-C03, CKA"
+                                   class="form-input" />
+                            <small class="form-hint">Enter the certification exam code or name</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="questionCount">Number of Questions</label>
+                            <select id="questionCount" @bind="QuestionCount" class="form-select">
+                                <option value="5">5 questions (Quick practice)</option>
+                                <option value="10">10 questions (Standard)</option>
+                                <option value="20">20 questions (Extended)</option>
+                                <option value="30">30 questions (Full practice)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button class="generate-btn" @onclick="GenerateExam" disabled="@(!CanGenerate)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                        Generate Exam
+                    </button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(ErrorMessage))
+            {
+                <div class="error-message">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                    @ErrorMessage
+                </div>
+            }
+        </div>
+
+        <div class="info-card">
+            <h3>Supported Exams</h3>
+            <p>The AI can generate practice questions for various certifications:</p>
+            <ul class="exam-list">
+                <li><strong>Microsoft Azure:</strong> AZ-900, AZ-104, AZ-204, AZ-305, AZ-400</li>
+                <li><strong>AWS:</strong> SAA-C03, DVA-C02, SOA-C02, SAP-C02</li>
+                <li><strong>Google Cloud:</strong> ACE, PCA, PDE</li>
+                <li><strong>Kubernetes:</strong> CKA, CKAD, CKS</li>
+                <li><strong>And many more...</strong></li>
+            </ul>
+            <p class="info-note">Note: Generated questions are for practice purposes. Always use official study materials for exam preparation.</p>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string ApiKey { get; set; } = string.Empty;
+    private string ExamNumber { get; set; } = string.Empty;
+    private int QuestionCount { get; set; } = 10;
+    private Models.LlmProvider SelectedProvider { get; set; } = Models.LlmProvider.OpenAI;
+    private string SelectedModel { get; set; } = "gpt-4o-mini";
+    private bool ShowApiKey { get; set; }
+    private bool IsGenerating { get; set; }
+    private string ProgressMessage { get; set; } = string.Empty;
+    private string? ErrorMessage { get; set; }
+    private Models.Exam? GeneratedExam { get; set; }
+    private CancellationTokenSource? _cancellationTokenSource;
+
+    private bool CanGenerate => !string.IsNullOrWhiteSpace(ApiKey) &&
+                                 !string.IsNullOrWhiteSpace(ExamNumber) &&
+                                 !IsGenerating;
+
+    protected override void OnInitialized()
+    {
+        GeneratorService.OnProgressUpdate += HandleProgressUpdate;
+
+        // Restore previous settings if available
+        if (GeneratorService.IsConfigured)
+        {
+            ApiKey = GeneratorService.Settings.ApiKey;
+            SelectedProvider = GeneratorService.Settings.Provider;
+            SelectedModel = GeneratorService.Settings.ModelId;
+        }
+    }
+
+    private void HandleProgressUpdate(string message)
+    {
+        ProgressMessage = message;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ToggleApiKeyVisibility()
+    {
+        ShowApiKey = !ShowApiKey;
+    }
+
+    private async Task GenerateExam()
+    {
+        if (!CanGenerate) return;
+
+        ErrorMessage = null;
+        IsGenerating = true;
+        GeneratedExam = null;
+        _cancellationTokenSource = new CancellationTokenSource();
+
+        try
+        {
+            // Update settings
+            GeneratorService.UpdateSettings(new Models.LlmSettings
+            {
+                ApiKey = ApiKey,
+                Provider = SelectedProvider,
+                ModelId = SelectedModel
+            });
+
+            // Generate exam
+            var exam = await GeneratorService.GenerateExamAsync(
+                ExamNumber,
+                QuestionCount,
+                _cancellationTokenSource.Token
+            );
+
+            if (exam != null && exam.Questions.Count > 0)
+            {
+                GeneratedExam = exam;
+                // Load into exam service for starting
+                await ExamService.LoadExamFromJsonAsync(
+                    System.Text.Json.JsonSerializer.Serialize(exam)
+                );
+            }
+            else
+            {
+                ErrorMessage = "Failed to generate exam questions. Please try again.";
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            ProgressMessage = "Generation cancelled";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            IsGenerating = false;
+            _cancellationTokenSource?.Dispose();
+            _cancellationTokenSource = null;
+        }
+    }
+
+    private void CancelGeneration()
+    {
+        _cancellationTokenSource?.Cancel();
+    }
+
+    private void StartExam()
+    {
+        if (GeneratedExam != null)
+        {
+            ExamService.StartExam();
+            Navigation.NavigateTo("/exam");
+        }
+    }
+
+    private void ResetExam()
+    {
+        GeneratedExam = null;
+        ErrorMessage = null;
+        ExamService.ResetExam();
+    }
+
+    public void Dispose()
+    {
+        GeneratorService.OnProgressUpdate -= HandleProgressUpdate;
+        _cancellationTokenSource?.Cancel();
+        _cancellationTokenSource?.Dispose();
+    }
+}

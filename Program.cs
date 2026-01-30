@@ -8,6 +8,7 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddScoped<ExamService>();
 builder.Services.AddScoped<TimerService>();
+builder.Services.AddScoped<QuestionGeneratorService>();
 
 var app = builder.Build();
 
