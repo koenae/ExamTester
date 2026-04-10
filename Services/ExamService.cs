@@ -44,12 +44,12 @@ public class ExamService
         {
             Exam = _currentExam,
             StartTime = DateTime.Now,
-            UserAnswers = new Dictionary<int, int?>()
+            UserAnswers = new Dictionary<int, UserAnswer>()
         };
 
         foreach (var question in _currentExam.Questions)
         {
-            _currentResult.UserAnswers[question.Id] = null;
+            _currentResult.UserAnswers[question.Id] = new UserAnswer();
         }
 
         _currentQuestionIndex = 0;
@@ -87,21 +87,23 @@ public class ExamService
     public void SetAnswer(int questionId, int answerIndex)
     {
         if (_currentResult == null) return;
-        _currentResult.UserAnswers[questionId] = answerIndex;
+        if (!_currentResult.UserAnswers.ContainsKey(questionId))
+            _currentResult.UserAnswers[questionId] = new UserAnswer();
+        _currentResult.UserAnswers[questionId].SelectedOption = answerIndex;
         NotifyStateChanged();
     }
 
     public void ClearAnswer(int questionId)
     {
         if (_currentResult == null) return;
-        _currentResult.UserAnswers[questionId] = null;
+        _currentResult.UserAnswers[questionId] = new UserAnswer();
         NotifyStateChanged();
     }
 
     public int? GetAnswer(int questionId)
     {
         if (_currentResult == null) return null;
-        return _currentResult.UserAnswers.TryGetValue(questionId, out var answer) ? answer : null;
+        return _currentResult.UserAnswers.TryGetValue(questionId, out var answer) ? answer.SelectedOption : null;
     }
 
     public void ToggleMarkForReview(int questionId)
@@ -126,7 +128,7 @@ public class ExamService
 
     public bool IsQuestionAnswered(int questionId)
     {
-        return _currentResult?.UserAnswers.TryGetValue(questionId, out var answer) == true && answer.HasValue;
+        return _currentResult?.UserAnswers.TryGetValue(questionId, out var answer) == true && answer.HasAnswer;
     }
 
     public ExamResult FinishExam(int timeSpentSeconds)

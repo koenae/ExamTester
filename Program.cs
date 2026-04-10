@@ -8,6 +8,11 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddScoped<ExamService>();
 builder.Services.AddScoped<TimerService>();
+builder.Services.AddSingleton<PersistenceService>();
+builder.Services.AddSingleton<ExamCatalogService>();
+builder.Services.AddScoped<LlmService>();
+builder.Services.AddScoped<ExamGeneratorService>();
+builder.Services.AddScoped<AnalyticsService>();
 
 var app = builder.Build();
 
