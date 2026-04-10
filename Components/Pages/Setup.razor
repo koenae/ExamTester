@@ -1,0 +1,218 @@
+@page "/setup"
+@inject LlmService LlmService
+@inject NavigationManager Navigation
+
+<div class="setup-page">
+    <div class="page-header">
+        <button class="back-btn" @onclick='() => Navigation.NavigateTo("/")'>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Back
+        </button>
+        <h1>AI Provider Settings</h1>
+        <p class="page-subtitle">Connect to an LLM to generate practice exam questions</p>
+    </div>
+
+    <div class="setup-form">
+        <div class="form-section">
+            <label class="form-label">Provider</label>
+            <div class="provider-grid">
+                @foreach (var provider in LlmConfig.Providers)
+                {
+                    <button class="provider-btn @(Config.Provider == provider.Key ? "selected" : "")"
+                            @onclick="() => SelectProvider(provider.Key)">
+                        <strong>@provider.Key</strong>
+                        <span class="provider-detail">@provider.Value.DefaultModel</span>
+                    </button>
+                }
+            </div>
+        </div>
+
+        <div class="form-section">
+            <label class="form-label" for="endpoint">API Endpoint</label>
+            <input id="endpoint" type="text" class="form-input" @bind="Config.ApiEndpoint"
+                   placeholder="https://api.openai.com/v1" />
+        </div>
+
+        @if (SelectedPreset?.RequiresApiKey == true)
+        {
+            <div class="form-section">
+                <label class="form-label" for="apikey">API Key</label>
+                <div class="input-with-toggle">
+                    <input id="apikey" type="@(ShowApiKey ? "text" : "password")" class="form-input"
+                           @bind="Config.ApiKey" placeholder="sk-..." />
+                    <button class="toggle-visibility" @onclick="() => ShowApiKey = !ShowApiKey" type="button">
+                        @if (ShowApiKey)
+                        {
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/>
+                                <line x1="1" y1="1" x2="23" y2="23"/>
+                            </svg>
+                        }
+                        else
+                        {
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        }
+                    </button>
+                </div>
+            </div>
+        }
+
+        <div class="form-section">
+            <label class="form-label" for="model">Model</label>
+            @if (SelectedPreset != null && SelectedPreset.Models.Length > 1)
+            {
+                <select id="model" class="form-input" @bind="Config.ModelName">
+                    @foreach (var model in SelectedPreset.Models)
+                    {
+                        <option value="@model">@model</option>
+                    }
+                </select>
+            }
+            else
+            {
+                <input id="model" type="text" class="form-input" @bind="Config.ModelName"
+                       placeholder="Model name" />
+            }
+        </div>
+
+        <div class="form-row">
+            <div class="form-section">
+                <label class="form-label" for="temperature">Temperature</label>
+                <input id="temperature" type="number" class="form-input" @bind="Config.Temperature"
+                       min="0" max="2" step="0.1" />
+                <span class="form-hint">Lower = more focused, Higher = more creative</span>
+            </div>
+            <div class="form-section">
+                <label class="form-label" for="maxtokens">Max Tokens</label>
+                <input id="maxtokens" type="number" class="form-input" @bind="Config.MaxTokens"
+                       min="256" max="32768" step="256" />
+                <span class="form-hint">Maximum response length per request</span>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button class="secondary-btn" @onclick="TestConnection" disabled="@IsTesting">
+                @if (IsTesting)
+                {
+                    <div class="btn-spinner"></div>
+                    <span>Testing...</span>
+                }
+                else
+                {
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                    <span>Test Connection</span>
+                }
+            </button>
+            <button class="primary-btn" @onclick="SaveConfig">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                    <polyline points="17 21 17 13 7 13 7 21"/>
+                    <polyline points="7 3 7 8 15 8"/>
+                </svg>
+                Save & Continue
+            </button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(StatusMessage))
+        {
+            <div class="status-message @(IsSuccess ? "success" : "error")">
+                @if (IsSuccess)
+                {
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="9 12 12 15 16 10"/>
+                    </svg>
+                }
+                else
+                {
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                }
+                @StatusMessage
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private LlmConfig Config = new();
+    private ProviderPreset? SelectedPreset;
+    private bool ShowApiKey;
+    private bool IsTesting;
+    private string? StatusMessage;
+    private bool IsSuccess;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LlmService.InitializeAsync();
+        Config = LlmService.GetConfig();
+        if (LlmConfig.Providers.TryGetValue(Config.Provider, out var preset))
+        {
+            SelectedPreset = preset;
+        }
+    }
+
+    private void SelectProvider(string providerName)
+    {
+        Config.Provider = providerName;
+        if (LlmConfig.Providers.TryGetValue(providerName, out var preset))
+        {
+            SelectedPreset = preset;
+            Config.ApiEndpoint = preset.DefaultEndpoint;
+            Config.ModelName = preset.DefaultModel;
+            if (!preset.RequiresApiKey)
+            {
+                Config.ApiKey = "not-required";
+            }
+            else if (Config.ApiKey == "not-required")
+            {
+                Config.ApiKey = string.Empty;
+            }
+        }
+        StatusMessage = null;
+    }
+
+    private async Task TestConnection()
+    {
+        IsTesting = true;
+        StatusMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            await LlmService.UpdateConfigAsync(Config);
+            var (success, message) = await LlmService.TestConnectionAsync();
+            IsSuccess = success;
+            StatusMessage = message;
+        }
+        catch (Exception ex)
+        {
+            IsSuccess = false;
+            StatusMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            IsTesting = false;
+        }
+    }
+
+    private async Task SaveConfig()
+    {
+        await LlmService.UpdateConfigAsync(Config);
+        IsSuccess = true;
+        StatusMessage = "Settings saved successfully!";
+        StateHasChanged();
+        await Task.Delay(800);
+        Navigation.NavigateTo("/catalog");
+    }
+}

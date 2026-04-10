@@ -1,0 +1,294 @@
+@page "/exam-setup/{ExamId}"
+@inject ExamCatalogService CatalogService
+@inject ExamGeneratorService GeneratorService
+@inject ExamService ExamService
+@inject LlmService LlmService
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<div class="exam-setup-page">
+    @if (CatalogEntry == null)
+    {
+        <div class="empty-state">
+            <p>Exam not found.</p>
+            <button class="primary-btn" @onclick='() => Navigation.NavigateTo("/catalog")'>Back to Catalog</button>
+        </div>
+    }
+    else if (IsGenerating)
+    {
+        <div class="generating-section">
+            <div class="generating-card">
+                <div class="generating-animation">
+                    <div class="pulse-ring"></div>
+                    <div class="pulse-ring delay-1"></div>
+                    <div class="pulse-ring delay-2"></div>
+                    <svg class="brain-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M12 2a7 7 0 00-7 7c0 2.38 1.19 4.47 3 5.74V17a2 2 0 002 2h4a2 2 0 002-2v-2.26c1.81-1.27 3-3.36 3-5.74a7 7 0 00-7-7z"/>
+                        <line x1="9" y1="21" x2="15" y2="21"/>
+                        <line x1="10" y1="17" x2="10" y2="21"/>
+                        <line x1="14" y1="17" x2="14" y2="21"/>
+                    </svg>
+                </div>
+
+                <h2>Generating Your Exam</h2>
+                <p class="generating-exam-name">@CatalogEntry.Name (@CatalogEntry.Code)</p>
+                <p class="generating-status">@ProgressMessage</p>
+
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" style="width: @(ProgressPercent)%"></div>
+                </div>
+                <span class="progress-text">@ProgressPercent%</span>
+
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <div class="status-message error">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="15" y1="9" x2="9" y2="15"/>
+                            <line x1="9" y1="9" x2="15" y2="15"/>
+                        </svg>
+                        @ErrorMessage
+                    </div>
+                    <div class="form-actions">
+                        <button class="secondary-btn" @onclick='() => Navigation.NavigateTo("/catalog")'>Back to Catalog</button>
+                        <button class="primary-btn" @onclick="StartGeneration">Retry</button>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="page-header">
+            <button class="back-btn" @onclick='() => Navigation.NavigateTo("/catalog")'>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"/>
+                </svg>
+                Back to Catalog
+            </button>
+            <h1>@CatalogEntry.Name</h1>
+            <p class="page-subtitle">@CatalogEntry.Code &middot; @CatalogEntry.Vendor</p>
+        </div>
+
+        <div class="setup-content">
+            <div class="setup-form">
+                <p class="exam-description">@CatalogEntry.Description</p>
+
+                <div class="form-section">
+                    <label class="form-label">Number of Questions</label>
+                    <div class="question-count-control">
+                        <button class="count-btn" @onclick="() => AdjustCount(-5)" disabled="@(QuestionCount <= 5)">-5</button>
+                        <button class="count-btn" @onclick="() => AdjustCount(-1)" disabled="@(QuestionCount <= 1)">-1</button>
+                        <span class="count-display">@QuestionCount</span>
+                        <button class="count-btn" @onclick="() => AdjustCount(1)">+1</button>
+                        <button class="count-btn" @onclick="() => AdjustCount(5)">+5</button>
+                    </div>
+                    <span class="form-hint">Default: @CatalogEntry.QuestionCount questions</span>
+                </div>
+
+                <div class="form-section">
+                    <label class="form-label">Time Limit (minutes)</label>
+                    <input type="number" class="form-input" @bind="TimeLimit" min="5" max="300" />
+                </div>
+
+                <div class="form-section">
+                    <label class="form-label">Difficulty</label>
+                    <div class="difficulty-options">
+                        @foreach (var diff in new[] { "Beginner", "Intermediate", "Advanced", "Expert" })
+                        {
+                            <button class="difficulty-btn @(Difficulty == diff ? "selected" : "") @diff.ToLower()"
+                                    @onclick="() => Difficulty = diff">@diff</button>
+                        }
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <label class="form-label">Focus Domains (optional)</label>
+                    <div class="domain-checkboxes">
+                        @foreach (var domain in CatalogEntry.Domains)
+                        {
+                            var domainName = domain.Name;
+                            <label class="checkbox-label">
+                                <input type="checkbox" checked="@FocusDomains.Contains(domainName)"
+                                       @onchange="(e) => ToggleDomain(domainName, (bool)(e.Value ?? false))" />
+                                <span>@domain.Name <span class="domain-weight">(@domain.Weight%)</span></span>
+                            </label>
+                        }
+                    </div>
+                    <span class="form-hint">Leave unchecked to cover all domains proportionally</span>
+                </div>
+
+                <div class="form-actions">
+                    <button class="primary-btn generate-btn" @onclick="StartGeneration" disabled="@(!LlmService.IsConfigured)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                        Generate Exam
+                    </button>
+
+                    @if (!LlmService.IsConfigured)
+                    {
+                        <p class="config-warning">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                            </svg>
+                            <a href="/setup">Configure your AI provider</a> first.
+                        </p>
+                    }
+                </div>
+            </div>
+
+            <div class="exam-info-sidebar">
+                <h3>Exam Details</h3>
+                <div class="info-list">
+                    <div class="info-item">
+                        <span class="info-label">Vendor</span>
+                        <span class="info-value">@CatalogEntry.Vendor</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Category</span>
+                        <span class="info-value">@CatalogEntry.Category</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Passing Score</span>
+                        <span class="info-value">@CatalogEntry.PassingScore%</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Difficulty</span>
+                        <span class="info-value">@CatalogEntry.Difficulty</span>
+                    </div>
+                </div>
+
+                <h4>Domains</h4>
+                <div class="domain-bars">
+                    @foreach (var domain in CatalogEntry.Domains)
+                    {
+                        <div class="domain-bar-item">
+                            <div class="domain-bar-header">
+                                <span>@domain.Name</span>
+                                <span>@domain.Weight%</span>
+                            </div>
+                            <div class="domain-bar">
+                                <div class="domain-bar-fill" style="width: @(domain.Weight)%"></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <h4>Key Topics</h4>
+                <ul class="topic-list">
+                    @foreach (var obj in CatalogEntry.Objectives)
+                    {
+                        <li>@obj</li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string ExamId { get; set; } = string.Empty;
+
+    private ExamCatalogEntry? CatalogEntry;
+    private int QuestionCount;
+    private int TimeLimit;
+    private string Difficulty = "Intermediate";
+    private HashSet<string> FocusDomains = new();
+    private bool IsGenerating;
+    private string ProgressMessage = "Preparing...";
+    private int ProgressPercent;
+    private string? ErrorMessage;
+    private CancellationTokenSource? _cts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LlmService.InitializeAsync();
+        CatalogEntry = CatalogService.GetExamById(ExamId);
+        if (CatalogEntry != null)
+        {
+            QuestionCount = CatalogEntry.QuestionCount;
+            TimeLimit = CatalogEntry.TimeLimit;
+            Difficulty = CatalogEntry.Difficulty;
+        }
+    }
+
+    private void AdjustCount(int delta)
+    {
+        QuestionCount = Math.Max(1, QuestionCount + delta);
+    }
+
+    private void ToggleDomain(string domain, bool isChecked)
+    {
+        if (isChecked)
+            FocusDomains.Add(domain);
+        else
+            FocusDomains.Remove(domain);
+    }
+
+    private async Task StartGeneration()
+    {
+        if (CatalogEntry == null || !LlmService.IsConfigured) return;
+
+        IsGenerating = true;
+        ErrorMessage = null;
+        ProgressPercent = 0;
+        ProgressMessage = "Connecting to AI provider...";
+        _cts = new CancellationTokenSource();
+        StateHasChanged();
+
+        try
+        {
+            var request = new ExamGenerationRequest
+            {
+                ExamId = CatalogEntry.Id,
+                QuestionCount = QuestionCount,
+                TimeLimit = TimeLimit,
+                Difficulty = Difficulty,
+                FocusDomains = FocusDomains.Count > 0 ? FocusDomains.ToList() : null,
+                ShuffleQuestions = true
+            };
+
+            var exam = await GeneratorService.GenerateExamAsync(request, progress =>
+            {
+                ProgressMessage = progress;
+                // Estimate progress based on message content
+                if (progress.Contains("1-"))
+                    ProgressPercent = 15;
+                else if (progress.Contains("Generating"))
+                    ProgressPercent = Math.Min(85, ProgressPercent + 20);
+
+                if (progress.Contains("Finalizing"))
+                    ProgressPercent = 90;
+
+                InvokeAsync(StateHasChanged);
+            });
+
+            ProgressPercent = 100;
+            ProgressMessage = "Exam ready! Starting...";
+            StateHasChanged();
+
+            await Task.Delay(600);
+
+            // Load the generated exam into ExamService and start
+            var examJson = System.Text.Json.JsonSerializer.Serialize(exam);
+            await ExamService.LoadExamFromJsonAsync(examJson);
+            ExamService.StartExam();
+            Navigation.NavigateTo("/exam");
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Generation failed: {ex.Message}";
+            ProgressMessage = "Generation failed";
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        _cts?.Cancel();
+        _cts?.Dispose();
+    }
+}
